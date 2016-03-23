@@ -4,7 +4,6 @@ date_default_timezone_set("Asia/Shanghai");
 header("Content-Type: text/html; charset=utf-8");
 require_once 'sql.php';
 require_once 'function.php';
-echo mb_substr('akkk我是', 0, 2);die();
 $sql = new sql();
 $url = 'http://weibo.cn/?vt=4';
 $return = curlRequest($url);
