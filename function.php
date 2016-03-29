@@ -1,4 +1,5 @@
 <?php
+require 'config.php';
 /**
  * CURL请求 
  * @param String $url 请求地址 
@@ -9,12 +10,13 @@
 function curlRequest($url, $data = '', $cookieFile = '')
 {
     $ch = curl_init();
+    global $weibo_account;
     $header[] = 'Accept:  text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8 ';
     $header[] = 'Accept-Language: zh-CN,zh;q=0.8,en-US;q=0.5,en;q=0.3 ';
     $header[] = 'User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64; rv:45.0) Gecko/20100101 Firefox/45.0 ';
     $header[] = 'Host: weibo.cn ';
     $header[] = 'Connection: Keep-Alive ';
-    $header[] = 'Cookie: SUHB=******* ; _T_WM=******* ; SUB=***** ; gsid_CTandWM=********** ';
+    $header[] = $weibo_account[1];
     $option = array(
         CURLOPT_URL => $url,
         CURLOPT_HTTPHEADER => $header,

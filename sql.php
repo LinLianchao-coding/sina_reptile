@@ -10,7 +10,7 @@ class sql {
     private static $is_trans = FALSE;
 
     public function __construct() {
-        require_once 'config.php';
+        require 'config.php';
 		self::$db_config = $db_config;
 	}
 

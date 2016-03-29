@@ -2,8 +2,9 @@
 
 date_default_timezone_set("Asia/Shanghai");
 header("Content-Type: text/html; charset=utf-8");
-require_once 'sql.php';
-require_once 'function.php';
+set_time_limit(300);
+require 'sql.php';
+require 'function.php';
 $sql = new sql();
 $url = 'http://weibo.cn/?vt=4';
 $return = curlRequest($url);
@@ -91,31 +92,39 @@ if ($return) {
             ++$page;
         }
         if ($weibo_id_array) {
-            $page = 1; //所有用户均从粉丝列表第一页开始获取
-            $ignore = array(); //已无更多粉丝可获取的用户数组
             while (1) {
-                foreach ($weibo_id_array as $weibo_id_key => $weibo_id_val) {
-                    if(in_array($weibo_id_val, $ignore)) continue;
-                    $home_info = get_home_info($weibo_id_val);
-                    $fans_list = get_fans_list($weibo_id_val, $home_info, $page);
-                    $fans_info = get_fans_info($fans_list);
-                    if(empty($fans_info)){
-                        $ignore[] = $weibo_id_val;
-                    }else {
-                        foreach ($fans_info as $fans_info_key => $fans_info_val) {
-                            try {
-                                $table_name = 'weibo_user_';
-                                $md5 = md5($fans_info_val['weibo_id']);
-                                $table_name .= $md5{0};
-                                $return = $sql->insert($table_name, $fans_info_val, TRUE);
-                            } catch (Exception $ex) {
-                                continue;
+                $page_record = $sql->query('SELECT * FROM `page_record` WHERE `user_id` =:user_id ORDER BY page DESC LIMIT 1', array('user_id' => 1));
+                $page = $page_record['page'] + 1;
+                $time = time();
+                $ignore = array(); //已无更多粉丝可获取的用户数组
+                while ((time() - $time) >= 360) {
+                    foreach ($weibo_id_array as $weibo_id_key => $weibo_id_val) {
+                        if (in_array($weibo_id_val, $ignore))
+                            continue;
+                        $home_info = get_home_info($weibo_id_val);
+                        $fans_list = get_fans_list($weibo_id_val, $home_info, $page);
+                        $fans_info = get_fans_info($fans_list);
+                        if (empty($fans_info)) {
+                            $ignore[] = $weibo_id_val;
+                        } else {
+                            foreach ($fans_info as $fans_info_key => $fans_info_val) {
+                                try {
+                                    $table_name = 'weibo_user_';
+                                    $md5 = md5($fans_info_val['weibo_id']);
+                                    $table_name .= $md5{0};
+                                    $return = $sql->insert($table_name, $fans_info_val, TRUE);
+                                } catch (Exception $ex) {
+                                    continue;
+                                }
                             }
                         }
                     }
+                    echo '已获取第'.$page."页\n";
+                    $sql->insert('page_record', array('user_id' => 1, 'page' => $page));
+                    ++$page;
                 }
-                echo '已获取第'.$page."页\n";
-                ++$page;
+                echo 'user_id1: 别就知道抓数据，休息一会儿吧……';
+                sleep(1800);
             }
         }
     }else {
