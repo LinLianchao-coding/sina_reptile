@@ -3,11 +3,12 @@ require 'config.php';
 /**
  * CURL请求 
  * @param String $url 请求地址 
+ * @param int $key 用来抓取信息的个人账号key
  * @param Array $data 请求数据 
  * @param String $cookieFile cookie文件地址
  * @return string 请求地址返回内容
  */
-function curlRequest($url, $data = '', $cookieFile = '')
+function curlRequest($url, $key, $data = '', $cookieFile = '')
 {
     $ch = curl_init();
     global $weibo_account;
@@ -16,7 +17,7 @@ function curlRequest($url, $data = '', $cookieFile = '')
     $header[] = 'User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64; rv:45.0) Gecko/20100101 Firefox/45.0 ';
     $header[] = 'Host: weibo.cn ';
     $header[] = 'Connection: Keep-Alive ';
-    $header[] = $weibo_account[1];
+    $header[] = $weibo_account[$key];
     $option = array(
         CURLOPT_URL => $url,
         CURLOPT_HTTPHEADER => $header,
@@ -34,7 +35,7 @@ function curlRequest($url, $data = '', $cookieFile = '')
     $response = curl_exec($ch);
     if (curl_getinfo($ch, CURLINFO_HTTP_CODE) === 302 || !$response) {
         echo $url." 302\n";
-        curlRequest($url);
+        curlRequest($url, $key);
     } else {
         $real_response = $response;
     }
@@ -62,11 +63,13 @@ function pre_match($return)
 }
 
 /**
- * 根据用户id获取该用户主页信息，并存储主页信息到txt文件中
+ * 根据用户id获取该用户主页信息
  * @param string $uid 用户id
+ * @param int $key 用来抓取信息的个人账号key
  * @return array 用户主页信息，预处理成a标签数组形式返回
  */
-function get_home_info($uid){
+function get_home_info($uid, $key)
+{
     $url = 'http://weibo.cn/'.$uid.'?vt=4';
     $uid_md5 = md5($uid);
     $dir = $uid_md5{0};
@@ -84,7 +87,7 @@ function get_home_info($uid){
             die('文件不可读'.$file_path);
         }
     } else {
-        $return = curlRequest($url);
+        $return = curlRequest($url, $key);
         if ($return) {
             if (@file_put_contents($file_path, $return)) {
                 return $return;
@@ -102,49 +105,37 @@ function get_home_info($uid){
  * @param string $uid 用户id
  * @param string $home_info 首页内容
  * @param int $page 要获取粉丝信息的页数
+ * @param int $key 用来抓取信息的个人账号key
  * @return string 粉丝列表
  */
-function get_fans_list($uid, $home_info, $page){
-    $uid_md5 = md5($uid);
-    $dir = $uid_md5{0};
-    if (strpos($uid, '/')) {
-        $uid = explode('/', $uid);
-        $file_path = './fans/'.$dir.'/'.$uid[1].'_'.$page.'.txt';
+function get_fans_list($uid, $home_info, $page, $key)
+{
+    $pre_matches = pre_match($home_info);
+    preg_match('/"(.*)".?/i', $pre_matches[11], $temp_list);
+    if (strpos($temp_list[1], 'fans?vt')) {
+        preg_match('/"(.*)".?/i', $pre_matches[11], $list);
     } else {
-        $file_path = './fans/'.$dir.'/'.$uid.'_'.$page.'.txt';
-    }
-    if (file_exists($file_path)) {
-        $file_content = @file_get_contents($file_path);
-        if ($file_content) {
-            return $file_content;
+        preg_match('/"(.*)".?/i', $pre_matches[12], $temp_list);
+        if (strpos($temp_list[1], 'fans?vt')) {
+            preg_match('/"(.*)".?/i', $pre_matches[12], $list);
         } else {
-            die('文件不可读'.$file_path);
-        }
-    } else {
-        $pre_matches = pre_match($home_info);
-        preg_match('/"(.*)".?/i', $pre_matches[12], $list);
-        $follow_url = 'http://weibo.cn'.$list[1].'&page='.$page;
-        unset($list);
-        $fans_list = curlRequest($follow_url);
-        if ($fans_list) {
-            if (@file_put_contents($file_path, $fans_list)) {
-                return $fans_list;
-            } else {
-                die('文件目录不可写'.$file_path);
-            }
-        } else {
-            die('无法登陆首页'.$file_path);
+            preg_match('/"(.*)".?/i', $pre_matches[13], $list);
         }
     }
-    
+    unset($temp_list);
+    $follow_url = 'http://weibo.cn'.$list[1].'&page='.$page;
+    unset($list);
+    $fans_list = curlRequest($follow_url, $key);
+    return $fans_list;
 }
 
 /**
  * 根据用户粉丝列表页进行处理，返回某一页粉丝信息的数组
  * @param string $fans_list 粉丝列表页
+ * @param int $key 用来抓取信息的微博账号在config文件中的key
  * @return array 某一页粉丝信息的数组
  */
-function get_fans_info($fans_list)
+function get_fans_info($fans_list, $key)
 {
     $space = 3; //用户的粉丝列表正则过滤后每一个用户拥有3个a标签，间隔一致
     $page_num = 10; //手机版粉丝列表一页有10个用户
@@ -158,7 +149,7 @@ function get_fans_info($fans_list)
         }
         preg_match('/src="(.*?)"/i', $fans_list[$i * $space], $photocat_add);
         preg_match('/>(.*)</i', $fans_list[$i * $space + 1], $weibo_name);
-        $home_info = get_home_info($weibo_id[1]);
+        $home_info = get_home_info($weibo_id[1], $key);
         //有微博私信时要获取地区和性别信息需要特殊处理
         if (strpos($home_info, '[X]')) {
             preg_match('/\[X\](.*)/i', $home_info, $temp_personal_content);
