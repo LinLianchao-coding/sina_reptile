@@ -5,18 +5,14 @@ header("Content-Type: text/html; charset=utf-8");
 include 'sql.php';
 include 'function.php';
 $sql = new sql();
-$url = 'http://weibo.cn/?vt=4';
-$total = 1;
-$num = 4;
-while (1) {
-    $key = $total % $num;
-    $return = curlRequest($url, $key);
-    if ($return) {
-        $file_path = './weibo_content.txt';
-        if (@file_put_contents($file_path, $return)) {  //处理自身微博
-            // 数据预处理
-            $pre_matches = pre_match($return);
-            unset($return);
+$url = 'http://weibo.cn/?vt=4';//zzzzzz
+$return = curlRequest($url);
+if ($return) {
+    $file_path = './weibo_content.txt';
+    if (@file_put_contents($file_path, $return)) {  //处理自身微博
+        // 数据预处理
+        $pre_matches = pre_match($return);
+        unset($return);
 
             //此处进入我的关注
             $has_user = 1; //标记是否还有用户可获取
