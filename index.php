@@ -146,5 +146,4 @@ if ($return) {
     }
     ++$total;
     sleep(300);
-}
     
