@@ -5,7 +5,7 @@ header("Content-Type: text/html; charset=utf-8");
 include 'sql.php';
 include 'function.php';
 $sql = new sql();
-$url = 'http://weibo.cn/?vt=4';
+$url = 'http://weibo.cn/?vt=4';  //zzznew
 $return = curlRequest($url);
 if ($return) {
     $file_path = './weibo_content.txt';
