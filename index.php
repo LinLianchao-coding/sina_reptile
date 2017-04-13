@@ -2,8 +2,8 @@
 
 date_default_timezone_set("Asia/Shanghai");
 header("Content-Type: text/html; charset=utf-8");
-require_once 'sql.php';
-require_once 'function.php';
+include 'sql.php';
+include 'function.php';
 $sql = new sql();
 $url = 'http://weibo.cn/?vt=4';
 $total = 1;
